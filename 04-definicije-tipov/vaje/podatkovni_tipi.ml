@@ -21,7 +21,13 @@
  - : euro = Euro 0.4305
 [*----------------------------------------------------------------------------*)
 
+type euro = Euro of float
 
+type dollar = Dollar of float
+
+let euro_to_dollar (Euro x) = Dollar (1.161 *. x)
+
+let dollar_to_euro (Dollar x) = Euro (x *. 0.861)
 
 (*----------------------------------------------------------------------------*]
  Definirajte tip [currency] kot en vsotni tip z konstruktorji za jen, funt
@@ -35,7 +41,12 @@
  - : currency = Pound 0.007
 [*----------------------------------------------------------------------------*)
 
+type currency = Yen of float | Pound of float | Krona of float
 
+let to_pound = function
+ | Yen x -> Pound (x *. 0.007)
+ | Pound x -> Pound x 
+ | Krona x -> Pound (x *. 0.085)
 
 (*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*]
  Želimo uporabljati sezname, ki hranijo tako cela števila kot tudi logične
