@@ -6,6 +6,9 @@
  poddrevesi. Na tej točki ne predpostavljamo ničesar drugega o obliki dreves.
 [*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*)
 
+type 'a drevo = 
+     | Prazno 
+     | Sestavljeno of 'a drevo * 'a * 'a drevo
 
 (*----------------------------------------------------------------------------*]
  Definirajmo si testni primer za preizkušanje funkcij v nadaljevanju. Testni
@@ -18,6 +21,14 @@
       0   6   11
 [*----------------------------------------------------------------------------*)
 
+let list x = Sestavljeno(Prazno, x, Prazno)
+
+let primer = 
+     Sestavljeno(
+          Sestavljeno(list 0, 2, Prazno), 
+          5,
+          Sestavljeno(list 6, 7, list 11)
+     )
 
 (*----------------------------------------------------------------------------*]
  Funkcija [mirror] vrne prezrcaljeno drevo. Na primeru [test_tree] torej vrne
@@ -33,6 +44,9 @@
  Node (Empty, 2, Node (Empty, 0, Empty)))
 [*----------------------------------------------------------------------------*)
 
+let rec mirror = function
+     | Prazno -> Prazno
+     | Sestavljeno(levo, x, desno) -> Sestavljeno(mirror desno, x, mirror levo)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [height] vrne višino oz. globino drevesa, funkcija [size] pa število
@@ -44,6 +58,13 @@
  - : int = 6
 [*----------------------------------------------------------------------------*)
 
+let rec height = function
+     | Prazno -> 0
+     | Sestavljeno(levo, x, desno) -> 1 + max (height levo) (height desno)
+
+let rec size = function
+     | Prazno -> 0
+     | Sestavljeno(levo, x, desno) -> 1 + (size levo) + (size desno)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [map_tree f tree] preslika drevo v novo drevo, ki vsebuje podatke
@@ -55,6 +76,9 @@
  Node (Node (Empty, true, Empty), true, Node (Empty, true, Empty)))
 [*----------------------------------------------------------------------------*)
 
+let rec map_tree f = function
+     | Prazno -> Prazno
+     | Sestavljeno(levo, x, desno) -> Sestavljeno(map_tree f levo, f x, map_tree f desno)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [list_of_tree] pretvori drevo v seznam. Vrstni red podatkov v seznamu
@@ -64,6 +88,9 @@
  - : int list = [0; 2; 5; 6; 7; 11]
 [*----------------------------------------------------------------------------*)
 
+let rec list_of_tree = function
+     | Prazno -> []
+     | Sestavljeno(levo, x, desno) -> list_of_tree levo @ [x] @ list_of_tree desno
 
 (*----------------------------------------------------------------------------*]
  Funkcija [is_bst] preveri ali je drevo binarno iskalno drevo (Binary Search 
@@ -76,6 +103,11 @@
  - : bool = false
 [*----------------------------------------------------------------------------*)
 
+let rec is_bst drevo =
+     let rec list_is_ordered = function
+       | [] | _ :: [] -> true
+       | x :: y :: rep -> if x <= y then list_is_ordered (y :: rep) else false
+     in drevo |> list_of_tree |> list_is_ordered
 
 (*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*]
  V nadaljevanju predpostavljamo, da imajo dvojiška drevesa strukturo BST.
@@ -91,6 +123,17 @@
  - : bool = false
 [*----------------------------------------------------------------------------*)
 
+let rec insert x = function
+     | Prazno -> list x
+     | Sestavljeno(levo, y, desno) when x = y -> Sestavljeno(levo, y, desno)
+     | Sestavljeno(levo, y, desno) when x < y -> Sestavljeno(insert x levo, y, desno)
+     | Sestavljeno(levo, y, desno)  -> Sestavljeno(levo, y, insert x desno)
+
+let rec member x = function
+     | Prazno -> false
+     | Sestavljeno(levo, y, desno) when x = y -> true
+     | Sestavljeno(levo, y, desno) when x < y -> member x levo
+     | Sestavljeno(levo, y, desno) -> member x desno
 
 (*----------------------------------------------------------------------------*]
  Funkcija [member2] ne privzame, da je drevo bst.
@@ -99,6 +142,15 @@
  funkcije [member2] na drevesu z n vozlišči, ki ima globino log(n). 
 [*----------------------------------------------------------------------------*)
 
+let member3 x drevo = 
+     let rec is_in x = function
+     | [] -> false
+     | y :: rep -> if x = y then true else is_in x rep
+     in drevo |> list_of_tree |> is_in
+
+let rec member2 x = function
+     | Prazno -> false
+     | Sestavljeno(levo, y, desno) -> x = y || (member2 x levo) || (member2 x desno)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [succ] vrne naslednjika korena danega drevesa, če obstaja. Za drevo
@@ -113,7 +165,26 @@
  - : int option = None
 [*----------------------------------------------------------------------------*)
 
+let succ drevo =
+     let rec minimal = function
+       | Prazno -> None
+       | Sestavljeno(Prazno, x, _) -> Some x
+       | Sestavljeno(l, _, _) -> minimal l
+     in
+     match drevo with
+     | Prazno -> None
+     | Sestavljeno(_, _, r) -> minimal r
 
+let pred drevo =
+     let rec maximal = function
+       | Prazno -> None
+       | Sestavljeno(_, x, Prazno) -> Some x
+       | Sestavljeno(_, _, r) -> maximal r
+     in
+     match drevo with
+     | Prazno -> None
+     | Sestavljeno(l, _, _) -> maximal l
+   
 (*----------------------------------------------------------------------------*]
  Na predavanjih ste omenili dva načina brisanja elementov iz drevesa. Prvi 
  uporablja [succ], drugi pa [pred]. Funkcija [delete x bst] iz drevesa [bst] 
@@ -127,6 +198,17 @@
  Node (Node (Empty, 6, Empty), 11, Empty))
 [*----------------------------------------------------------------------------*)
 
+let rec delete x = function
+  | Prazno -> Prazno
+  | Sestavljeno(l, y, r) when x > y -> Sestavljeno(l, y, delete x r)
+  | Sestavljeno(l, y, r) when x < y -> Sestavljeno(delete x l, y, r)
+  | Sestavljeno(l, y, r) as bst -> (
+      (*Potrebno je izbrisati vozlišče.*)
+      match succ bst with
+      | None -> l (*To se zgodi le kadar je [r] enak [Empty].*)
+      | Some s ->
+        let clean_r = delete s r in
+        Sestavljeno(l, s, clean_r))
 
 (*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*]
  SLOVARJI
@@ -139,6 +221,7 @@
  vrednosti, ga parametriziramo kot [('key, 'value) dict].
 [*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*)
 
+type ('key, 'value) dict = ('key * 'value) drevo
 
 (*----------------------------------------------------------------------------*]
  Napišite testni primer [test_dict]:
@@ -149,6 +232,9 @@
      "c":-2
 [*----------------------------------------------------------------------------*)
 
+let test_dict 
+     : (string, int) dict
+  = Sestavljeno (list ("a", 0), ("b", 1), Sestavljeno (list ("c", -2), ("d", 2), Prazno))
 
 (*----------------------------------------------------------------------------*]
  Funkcija [dict_get key dict] v slovarju poišče vrednost z ključem [key]. Ker
@@ -160,6 +246,12 @@
  - : int option = Some (-2)
 [*----------------------------------------------------------------------------*)
 
+let rec dict_get key = function
+     | Prazno -> None
+     | Sestavljeno (l, (k, x), d) -> 
+          if k = key then Some x
+          else if k > key then dict_get key l
+          else dict_get key d
       
 (*----------------------------------------------------------------------------*]
  Funkcija [print_dict] sprejme slovar s ključi tipa [string] in vrednostmi tipa
@@ -177,6 +269,12 @@
  - : unit = ()
 [*----------------------------------------------------------------------------*)
 
+let rec print_dict = function
+  | Prazno -> ()
+  | Sestavljeno (d_l, (k, v), d_r) -> (
+      print_dict d_l;
+      print_string (k ^ " : "); print_int v; print_newline ();
+      print_dict d_r)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [dict_insert key value dict] v slovar [dict] pod ključ [key] vstavi
@@ -197,3 +295,9 @@
  - : unit = ()
 [*----------------------------------------------------------------------------*)
 
+let rec dict_insert key value = function
+     | Prazno -> list (key, value)
+     | Sestavljeno (l, (k, v), d) -> 
+          if k = key then Sestavljeno (l, (k, value), d)
+          else if k < key then Sestavljeno (l, (k, v), dict_insert key value d)
+          else Sestavljeno (dict_insert key value l, (k, v),  d)
