@@ -9,6 +9,7 @@
  - : bool = true
 [*----------------------------------------------------------------------------*)
 
+let bst_of_list list = List.fold_right insert list Prazno
 
 (*----------------------------------------------------------------------------*]
  Funkcija [tree_sort] uredi seznam s pomočjo pretvorbe v bst in nato nazaj
@@ -20,6 +21,7 @@
  - : string list = ["a"; "b"; "c"; "d"; "e"; "f"]
 [*----------------------------------------------------------------------------*)
 
+let tree_sort list = list |> bst_of_list |> list_of_tree
 
 (*----------------------------------------------------------------------------*]
  Funkcija [follow directions tree] tipa [direction list -> 'a tree -> 'a option]
@@ -33,6 +35,15 @@
  - : int option = None
 [*----------------------------------------------------------------------------*)
 
+type direction = Left | Right
+
+let rec follow directions = function
+  | Prazno -> None
+  | Sestavljeno(l, x, r) ->
+    (match directions with
+     | [] -> Some x
+     | Left :: tl -> follow tl l
+     | Right :: tl -> follow tl r)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [prune directions tree] poišče vozlišče v drevesu glede na navodila,
@@ -46,6 +57,18 @@
  Some (Node (Node (Node (Empty, 0, Empty), 2, Empty), 5, Empty))
 [*----------------------------------------------------------------------------*)
 
+let rec prune directions tree =
+  match directions, tree with
+  | [], _ -> Some Prazno
+  | _, Prazno -> None
+  | Left :: tl, Sestavljeno(l, x, r) ->
+    (match prune tl l with
+     | None -> None
+     | Some new_l -> Some (Sestavljeno(new_l, x, r)))
+  | Right :: tl, Sestavljeno(l, x, r) ->
+    (match prune tl r with
+     |None -> None
+     | Some new_l -> Some (Sestavljeno(new_l, x, r)))
 
 (*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*]
  PHANTOM TREES
@@ -58,6 +81,11 @@
  predpostavljamo, da imajo drevesa obliko BST.
 [*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*)
 
+type state = Exists | Ghost
+
+type 'a phantom_tree =
+  | P_Prazno
+  | P_Sestavljeno of 'a phantom_tree * 'a * 'a phantom_tree * state
 
 (*----------------------------------------------------------------------------*]
  Funkcija [phantomize] tipa ['a tree -> 'a phantom_tree] navadnemu drevesu
@@ -79,6 +107,22 @@
  P_Node (P_Node (P_Empty, 3, P_Empty, Ghost), 4, P_Empty, Exists), Exists)
 [*----------------------------------------------------------------------------*)
 
+let rec phantomize = function
+  | Prazno -> P_Prazno
+  | Sestavljeno(l, x, r) ->
+    let p_l = phantomize l in
+    let p_r = phantomize r in
+    P_Sestavljeno(p_l, x, p_r, Exists)
+
+let rec kill x = function
+    | P_Prazno -> P_Prazno
+    | P_Sestavljeno (l, y, d, st)  ->
+      if y = x then 
+        P_Sestavljeno (l, y, d, Ghost)
+      else if y < x then
+        P_Sestavljeno (l, y, kill x d, st)
+      else 
+        P_Sestavljeno (kill x l, y, d, st)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [unphantomize] tipa ['a phantom_tree -> 'a tree] fantomskemu drevesu 
@@ -90,3 +134,11 @@
  # test_tree |> phantomize |> kill 7 |> kill 0 |> kill 5 |> unphantomize;;
  - : int tree = Node (Node (Node (Empty, 2, Empty), 6, Empty), 11, Empty)
 [*----------------------------------------------------------------------------*)
+
+let unphantomize ptree =
+  let rec list_of_ptree = function
+    | P_Prazno -> []
+    | P_Sestavljeno(l, x, r, Ghost) -> (list_of_ptree l) @ (list_of_ptree r)
+    | P_Sestavljeno(l, x, r, Exists) -> (list_of_ptree l) @ [x] @ (list_of_ptree r)
+  in
+  ptree |> list_of_ptree |> bst_of_list
