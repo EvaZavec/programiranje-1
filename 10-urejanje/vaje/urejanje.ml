@@ -16,13 +16,22 @@
  - : int list = [7]
 [*----------------------------------------------------------------------------*)
 
+let rec insert y = function
+    | [] -> [y]
+    | x :: xs -> 
+      if x = y then 
+        x :: xs
+      else if x < y then 
+        x :: insert y xs
+      else 
+        y :: x :: xs
 
 (*----------------------------------------------------------------------------*]
  Prazen seznam je že urejen. Funkcija [insert_sort] uredi seznam tako da
  zaporedoma vstavlja vse elemente seznama v prazen seznam.
 [*----------------------------------------------------------------------------*)
 
-
+let insert_sort list = List.fold_left (fun acc x -> insert x acc) [] list
 
 (*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*]
  Urejanje z Izbiranjem
@@ -70,6 +79,10 @@
  - : int array = [|0; 4; 2; 3; 1|]
 [*----------------------------------------------------------------------------*)
 
+let swap a i j = 
+  let x = a.(i) in
+  a.(i) <- a.(j);
+  a.(j) <- x
 
 (*----------------------------------------------------------------------------*]
  Funkcija [index_min a lower upper] poišče indeks najmanjšega elementa tabele
@@ -78,11 +91,25 @@
  index_min [|0; 2; 9; 3; 6|] 2 4 = 4
 [*----------------------------------------------------------------------------*)
 
+let index_min a lower upper =
+  let index_min = ref lower in
+  for i = lower to upper do
+    if a.(i) < a.(!index_min) then
+      index_min := i
+  done;
+  !index_min
 
 (*----------------------------------------------------------------------------*]
  Funkcija [selection_sort_array] implementira urejanje z izbiranjem na mestu. 
 [*----------------------------------------------------------------------------*)
 
+let selection_sort_array a =
+  let index_end = Array.length a - 1 in
+  (* Every step moves boundary_sorted one place to the right. *)
+  for boundary_sorted = 0 to index_end do
+    let i = index_min a boundary_sorted index_end in
+    swap a i boundary_sorted
+  done 
 
 (*----------------------------------------------------------------------------*]
  Funkcija [min_and_rest list] vrne par [Some (z, list')] tako da je [z]
@@ -90,11 +117,33 @@
  pojavitvijo elementa [z]. V primeru praznega seznama vrne [None]. 
 [*----------------------------------------------------------------------------*)
 
+let min_and_rest list =
+  let rec remove_one z = function
+    | [] -> failwith "not found"
+    | x :: xs -> if x = z then xs else x :: remove_one z xs
+  in
+  let rec find_min current_min = function
+    | [] -> current_min
+    | x :: xs -> find_min (min x current_min) xs
+  in
+  match list with
+  | [] -> None
+  | x :: xs ->
+    let z = find_min x xs in
+    Some (z, remove_one z (x :: xs))
+
 (*----------------------------------------------------------------------------*]
  Funkcija [selection_sort] je implementacija zgoraj opisanega algoritma.
  Namig: Uporabi [min_and_rest] iz prejšnje naloge.
 [*----------------------------------------------------------------------------*)
 
+let selection_sort list =
+  let rec aux sorted unsorted =
+    match min_and_rest unsorted with
+    | None -> List.rev sorted
+    | Some (x, unsorted') -> aux (x::sorted) unsorted'
+  in 
+  aux [] list
 
 (*----------------------------------------------------------------------------*]
  Funkcija [randlist len max] generira seznam dolžine [len] z naključnimi
@@ -104,6 +153,11 @@
  val l : int list = [0; 1; 0; 4; 0; 9; 1; 2; 5; 4]
 [*----------------------------------------------------------------------------*)
 
+let rec randlist len max =
+  if len <= 0 then
+    []
+  else
+    Random.int max :: (randlist (len-1) max)
 
 (*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*]
  Sedaj lahko s pomočjo [randlist] primerjamo našo urejevalno funkcijo (imenovana
@@ -112,3 +166,4 @@
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  let test = (randlist 100 100) in (our_sort test = List.sort compare test);;
 [*-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=*)
+
