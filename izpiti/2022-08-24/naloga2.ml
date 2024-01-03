@@ -6,7 +6,13 @@ let example = Tape { left = [ 3; 2; 1 ]; head = 4; right = [ 5; 6 ] }
 
 (* 2. a) *)
 
-let map _ = failwith "TODO"
+let map (Tape { left = sez1; head = x; right = sez2 }) f = 
+  let rec map_sez f = function
+    | [] -> []
+    | x :: xs -> (f x) :: map_sez f xs
+  in
+  Tape { left = (map_sez f sez1); head = (f x); right = (map_sez f sez2) }
+
 
 (* 2. b) *)
 
