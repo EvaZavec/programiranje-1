@@ -11,12 +11,55 @@ from functools import cache
 # podzaporedje `[2, 3, 4, 4, 6, 7, 8, 9]`.
 # -----------------------------------------------------------------------------
 
+def najdaljse_narascajoce_podzaporedje(sez):
+
+    @cache
+    def najdaljse(spodnja_meja, i):
+        # i označuje indeks trenutnega elementa
+        if i >= len(sez):
+            return []
+        elif sez[i] < spodnja_meja:
+            # Neprimeren element, preskočimo
+            return najdaljse(spodnja_meja, i + 1)
+        else:
+            # Razvejitev in agregacija glede na dolžino
+            z_prvim = [sez[i]] + najdaljse(sez[i], i + 1)
+            brez_prvega = najdaljse(spodnja_meja, i + 1)
+            if len(z_prvim) > len(brez_prvega):
+                return z_prvim
+            else:
+                return brez_prvega
+
+    return najdaljse(float("-inf"), 0)
+
 # -----------------------------------------------------------------------------
 # Rešitev sedaj popravite tako, da funkcija `vsa_najdaljsa` vrne seznam vseh
 # najdaljših naraščajočih podzaporedij.
 # -----------------------------------------------------------------------------
 
+def vsa_najdaljsa(sez):
+    # dodatno vračamo dolžino zaporedij v množici
 
+    @cache
+    def najdaljse(spodnja_meja, i):
+        # i označuje indeks trenutnega elementa
+        if i >= len(sez):
+            return (0, [[]])
+        elif sez[i] < spodnja_meja:
+            # Neprimeren element, preskočimo
+            return najdaljse(spodnja_meja, i + 1)
+        else:
+            d_z, zap_z = najdaljse(sez[i], i + 1)  # tem moramo še dodati člen
+            d_brez, zap_brez = najdaljse(spodnja_meja, i + 1)
+            if d_z+1 > d_brez:
+                # moramo še dodati element
+                return (d_z+1, [[sez[i]]+zap for zap in zap_z])
+            elif d_z+1 < d_brez:
+                return (d_brez, zap_brez)
+            else:
+                return (d_brez, [[sez[i]]+zap for zap in zap_z] + zap_brez)
+
+    return najdaljse(float("-inf"), 0)[1]
 
 # =============================================================================
 # Žabica
@@ -43,7 +86,16 @@ from functools import cache
 # dva.
 # =============================================================================
 
+def zabica(mocvara):
 
+    @cache
+    def pobeg(k, e):
+        if k >= len(mocvara):
+            return 0
+        else:
+            e += mocvara[k]
+            return 1 + min([pobeg(k + d, e - d) for d in range(1, e + 1)])
+    return pobeg(0, 0)
 
 # =============================================================================
 # Nageljni
@@ -66,7 +118,23 @@ from functools import cache
 #     [0, 1, 1, 0, 1, 1, 0, 1, 1]
 # =============================================================================
 
-
+    @cache
+def nageljni(n, m, l):
+    if m <= 0:
+        return [[0 for _ in range(n)]]
+    elif n < l:
+        return []
+    elif n == l and m == 1:
+        # zapolnimo do potankosti
+        # dodan kot robni primer, da lahko v naslednji opciji vedno dodamo 0
+        # na desno stran korita
+        return [[1 for _ in range(n)]]
+    else:
+        ne_postavimo = [[0] + postavitev for postavitev in nageljni(n-1, m, l)]
+        postavimo = \
+            [[1 for _ in range(l)] + [0] + postavitev
+             for postavitev in nageljni(n-l-1, m-1, l)]
+        return postavimo + ne_postavimo
 
 # =============================================================================
 # Pobeg iz Finske
@@ -111,7 +179,26 @@ from functools import cache
 # seznam indeksov mest, v katerih se Mortimer ustavi.
 # =============================================================================
 
+def pobeg(pot):
 
+    @cache
+    def pobeg(i, denar):
+        if i >= len(pot) and denar >= 0:
+            return [i]
+        elif i >= len(pot):
+            return None
+        else:
+            moznosti = []
+            for (skok, stroski) in pot[i]:
+                beg = pobeg(skok, denar + stroski)
+                if beg is not None:
+                    moznosti.append(beg)
+            if len(moznosti) == 0:
+                return None
+            else:
+                return [i] + sorted(moznosti, key=len)[0]
+
+    return pobeg(0, 0)
 
 # =============================================================================
 # Pričetek robotske vstaje
@@ -148,3 +235,33 @@ from functools import cache
 # 
 # medtem ko iz vrste 5 in stolpca 0 ne more pobegniti.
 # =============================================================================
+
+def pot_pobega(soba, vrsta, stolpec, koraki):
+    max_vrsta = len(soba)
+    max_stolpec = len(soba[0])
+
+    @cache
+    def pobegni(vrsta, stolpec, koraki):
+        # Padli smo iz sobe
+        if not (0 <= vrsta < max_vrsta) or not (0 <= stolpec < max_stolpec):
+            return None
+        # Pobeg uspešen! All hail our robot overlords!!!
+        elif soba[vrsta][stolpec] == 1:
+            return []
+        # Lahko bežimo naprej
+        elif soba[vrsta][stolpec] == 0 and koraki > 0:
+            moznosti = \
+                [("dol", pobegni(vrsta + 1, stolpec, koraki-1)),
+                 ("gor", pobegni(vrsta - 1, stolpec, koraki-1)),
+                 ("desno", pobegni(vrsta, stolpec + 1, koraki-1)),
+                 ("levo", pobegni(vrsta, stolpec - 1, koraki-1))]
+            uspesne = \
+                [(smer, pot) for (smer, pot) in moznosti if pot is not None]
+            if uspesne:
+                return [uspesne[0][0]] + uspesne[0][1]  # [smer] + pot
+            else:
+                return None
+        # Pristali smo na oviri ali pa nam je zmanjkalo korakov
+        else:
+            return None
+    return pobegni(vrsta, stolpec, koraki)

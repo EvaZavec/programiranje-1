@@ -21,6 +21,16 @@
 #
 ###############################################################################
 
+def merge(target, list1, list2):
+    i1, i2 = 0, 0
+    for j in range(len(target)):
+        if (i2 >= len(list2)) or (i1 < len(list1) and list1[i1] <= list2[i2]):
+            target[j] = list1[i1]
+            i1 += 1
+        else:
+            target[j] = list2[i2]
+            i2 += 1
+    return
 
 ###############################################################################
 # Tabelo želimo urediti z zlivanjem (merge sort). Tabelo razdelimo na polovici,
@@ -37,6 +47,17 @@
 #     >>> a
 #     [2, 3, 4, 5, 10, 11, 15, 17, 18]
 ###############################################################################
+
+def mergesort(a):
+    if len(a) <= 1:
+        return
+    else:
+        half = len(a) // 2
+        a1, a2 = a[:half], a[half:]
+        mergesort(a1)
+        mergesort(a2)
+        merge(a, a1, a2)
+        return
 
 ###############################################################################
 # Na predavanjih ste implementirali imperativno verzijo pivotiranja v OCamlu, 

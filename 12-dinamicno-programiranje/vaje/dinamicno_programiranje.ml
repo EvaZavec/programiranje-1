@@ -16,6 +16,17 @@
  - : int = 13
 [*----------------------------------------------------------------------------*)
 
+let max_cheese cheese_matrix =
+   let dimy = Array.length cheese_matrix in
+   let dimx = Array.length cheese_matrix.(0) in
+   let rec best_path y x =
+     let current_cheese = cheese_matrix.(y).(x) in
+     let best_right = if x + 1 = dimx then 0 else best_path y (x + 1) in
+     let best_down = if y + 1 = dimy then 0 else best_path (y + 1) x in
+     current_cheese + max best_right best_down
+   in
+   best_path 0 0
+
 let test_matrix = 
   [| [| 1 ; 2 ; 0 |];
      [| 2 ; 4 ; 5 |];
@@ -38,6 +49,38 @@ let test_matrix =
 
 type mouse_direction = Down | Right
 
+let optimal_path cheese_matrix =
+   let dimx = Array.length cheese_matrix in
+   let dimy = Array.length cheese_matrix.(0) in
+   let rec best_path y x =
+     let current_cheese = cheese_matrix.(y).(x) in
+     let best_right, path_right =
+       if x + 1 = dimx then (0, []) else best_path y (x + 1)
+     in
+     let best_down, path_down =
+       if y + 1 = dimy then (0, []) else best_path (y + 1) x
+     in
+     let best, step =
+       if best_right >= best_down
+       then (best_right, Right :: path_right)
+       else (best_down, Down :: path_down)
+     in
+     (current_cheese + best, step)
+   in
+   best_path 0 0 |> snd
+ 
+ 
+ let convert_path cheese_matrix path =
+   let rec walk y x = function
+     | [] -> []
+     | dir :: xs ->
+         let r, d = 
+           match dir with Right -> (0, 1) | Down -> (1, 0) 
+         in
+         cheese_matrix.(y).(x) :: walk (y + d) (x + r) xs
+   in
+   walk 0 0 path
+ 
 
 (*----------------------------------------------------------------------------*]
  Rešujemo problem sestavljanja alternirajoče obarvanih stolpov. Imamo štiri
