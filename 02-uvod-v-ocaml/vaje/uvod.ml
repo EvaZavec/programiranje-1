@@ -48,7 +48,7 @@ let starting_element = function
 [*----------------------------------------------------------------------------*)
 
 let rec multiply = function
-  | [] -> 0
+  | [] -> 1
   | x :: rep -> x * multiply rep
 
 (*----------------------------------------------------------------------------*]
@@ -68,7 +68,7 @@ let rec multiply = function
 
 let rec sum_int_pairs = function
   | [] -> [] 
-  | (x, y :: rep -> (x + y) :: sum_int_pairs rep
+  | (x, y) :: rep -> (x + y) :: sum_int_pairs rep
 
 (*----------------------------------------------------------------------------*]
  Funkcija [get k list] poišče [k]-ti element v seznamu [list]. Številčenje
@@ -136,8 +136,8 @@ let rec divide k seznam = match (k, seznam) with
 [*----------------------------------------------------------------------------*)
 
 let rotate n seznam = 
-  let (seznam1, seznam2) = divide n list in
-  list2 @ list1
+  let (seznam1, seznam2) = divide n seznam in
+  seznam2 @ seznam1
 
 (*----------------------------------------------------------------------------*]
  Funkcija [remove x list] iz seznama izbriše vse pojavitve elementa [x].
@@ -160,7 +160,7 @@ let rec remove x seznam = match (x, seznam) with
  - : bool = false
 [*----------------------------------------------------------------------------*)
 
-let is_palindrome seznama = 
+let is_palindrome seznam = 
   let rec obrat = function
     | [] -> []
     | x :: rep -> obrat rep @ [x]
@@ -191,10 +191,10 @@ let rec max_on_components sez1 sez2 = match (sez1, sez2) with
 [*----------------------------------------------------------------------------*)
 
 let second_largest sez = 
-  let rec najvecji sez = function
+  let rec najvecji = function
     | [] -> failwith "prekratek seznam"
 	  | x :: [] -> x
-    | x :: rep -> max x najvecji rep
+    | x :: rep -> max x (najvecji rep)
   in
   najvecji (remove (najvecji sez) sez)
   

@@ -100,10 +100,10 @@ let map_tlrec f seznam =
 [*----------------------------------------------------------------------------*)
 
 let mapi f seznam = 
-  let mapi_aux i seznam =
+  let rec mapi_aux i seznam =
     match seznam with
     | [] -> []
-    | x :: rep -> (f i x) :: (mapi_aux rep (i + 1)) 
+    | x :: rep -> (f i x) :: (mapi_aux  (i + 1) rep) 
   in
   mapi_aux 0 seznam
 
@@ -142,7 +142,7 @@ let rec unzip = function
   | (x1, x2) :: rep -> 
     let (sez1, sez2) = unzip rep 
     in 
-    (x :: list1, y :: list2)
+    (x1 :: sez1, x2 :: sez2)
 
 (*----------------------------------------------------------------------------*]
  Funkcija [unzip_tlrec] je repno rekurzivna različica funkcije [unzip].
@@ -152,13 +152,12 @@ let rec unzip = function
 [*----------------------------------------------------------------------------*)
 
 let unzip_tlrec seznam = 
-  let rec unzip_tlrec_aux seznam acc1 acc2 = 
+  let rec unzip_aux seznam acc1 acc2 = 
     match seznam with 
     | [] -> (reverse acc1, reverse acc2)
-    | (x1, x2) :: rep -> 
-      let (sez1, sez2) = unzip_tlrec_aux rep (x1 :: acc1) (x2 :: acc2)
+    | (x1, x2) :: rep -> unzip_aux rep (x1 :: acc1) (x2 :: acc2)
   in
-  unzip_tlrec_aux seznam [] []
+  unzip_aux seznam [] []
 
 (*----------------------------------------------------------------------------*]
  Funkcija [loop condition f x] naj se izvede kot python koda:
@@ -252,7 +251,7 @@ let rec exists f seznam =
   | x :: rep -> 
     if f x then
       true
-    else exist f rep
+    else exists f rep
 
 (*----------------------------------------------------------------------------*]
  Funkcija [first f default list] vrne prvi element seznama, za katerega
@@ -273,3 +272,4 @@ let rec first f default seznam =
     if f x then
       x
     else first f default rep
+
